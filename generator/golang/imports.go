@@ -88,6 +88,9 @@ func (im *importManager) init(cu *CodeUtils, ast *parser.Thrift) {
 
 	if len(ast.GetStructLikes()) > 0 {
 		ns.Add("fmt", "fmt")
+		if ns.ID("context") == "" {
+			ns.Add("context", "context")
+		}
 		ns.Add("thrift", DefaultThriftLib)
 	}
 
@@ -95,7 +98,9 @@ func (im *importManager) init(cu *CodeUtils, ast *parser.Thrift) {
 		ns.Add("thrift", DefaultThriftLib)
 		for _, svc := range ast.Services {
 			if svc.Extends == "" || len(svc.Functions) > 0 {
-				ns.Add("context", "context")
+				if ns.ID("context") == "" {
+					ns.Add("context", "context")
+				}
 			}
 			if len(svc.Functions) > 0 {
 				ns.Add("fmt", "fmt")
