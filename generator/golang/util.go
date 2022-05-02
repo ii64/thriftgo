@@ -219,17 +219,20 @@ func (cu *CodeUtils) genFieldTags(f *parser.Field, insertPoint string, extend []
 			})
 		}
 		tags = append(tags, tag)
-	} else {
-		if cu.Features().GenDatabaseTag {
-			tags = append(tags, fmt.Sprintf(`db:"%s"`, f.Name))
-		}
+	}
 
+	if cu.Features().GenDatabaseTag {
+		tags = append(tags, fmt.Sprintf(`db:"%s"`, f.Name))
+	}
+
+	if cu.Features().GenJsonTag {
 		if f.Requiredness.IsOptional() && cu.Features().GenOmitEmptyTag {
 			tags = append(tags, fmt.Sprintf(`json:"%s,omitempty"`, f.Name))
 		} else {
 			tags = append(tags, fmt.Sprintf(`json:"%s"`, f.Name))
 		}
 	}
+
 	str := fmt.Sprintf("`%s%s`", strings.Join(tags, " "), insertPoint)
 	return str, nil
 }

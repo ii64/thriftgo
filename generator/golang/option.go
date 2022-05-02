@@ -27,6 +27,7 @@ type Features struct {
 	MarshalEnumToText  bool `json_enum_as_text:"Generate MarshalText for enum values"`
 	GenerateSetter     bool `gen_setter:"Generate Set* methods for fields"`
 	GenDatabaseTag     bool `gen_db_tag:"Generate 'db:$field' tag"`
+	GenJsonTag         bool `gen_json_tag:"Generate 'json:$field' tag"`
 	GenOmitEmptyTag    bool `omitempty_for_optional:"Generate 'omitempty' tags for optional fields. Enabled by default."`
 	TypedefAsTypeAlias bool `use_type_alias:"Generate type alias for typedef instead of type define. Enabled by default."`
 	ValidateSet        bool `validate_set:"Generate codes to validate the uniqueness of set elements. Enabled by default."`
@@ -47,6 +48,7 @@ var defaultFeatures = Features{
 	MarshalEnumToText:  false,
 	GenerateSetter:     false,
 	GenDatabaseTag:     false,
+	GenJsonTag:         true,
 	GenOmitEmptyTag:    true,
 	TypedefAsTypeAlias: true,
 	ValidateSet:        true,
