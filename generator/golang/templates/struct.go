@@ -111,7 +111,7 @@ var StructLikeDefault = `
 var StructLikeRead = `
 {{define "StructLikeRead"}}
 {{- $TypeName := .GoName}}
-func (p *{{$TypeName}}) Read(iprot thrift.TProtocol) (err error) {
+func (p *{{$TypeName}}) Read(ctx context.Context, iprot thrift.TProtocol) (err error) {
 	{{if Features.KeepUnknownFields}}var name string{{end}}
 	var fieldTypeId thrift.TType
 	var fieldId int16
@@ -121,12 +121,12 @@ func (p *{{$TypeName}}) Read(iprot thrift.TProtocol) (err error) {
 	{{- end}}
 	{{- end}}
 
-	if _, err = iprot.ReadStructBegin(); err != nil {
+	if _, err = iprot.ReadStructBegin(ctx); err != nil {
 		goto ReadStructBeginError
 	}
 
 	for {
-		{{if Features.KeepUnknownFields}}name{{else}}_{{end}}, fieldTypeId, fieldId, err = iprot.ReadFieldBegin()
+		{{if Features.KeepUnknownFields}}name{{else}}_{{end}}, fieldTypeId, fieldId, err = iprot.ReadFieldBegin(ctx)
 		if err != nil {
 		    goto ReadFieldBeginError
 		}
@@ -138,14 +138,14 @@ func (p *{{$TypeName}}) Read(iprot thrift.TProtocol) (err error) {
 		{{- range .Fields}}
 		case {{.ID}}:
 			if fieldTypeId == thrift.{{.Type | GetTypeIDConstant }} {
-				if err = p.{{.Reader}}(iprot); err != nil {
+				if err = p.{{.Reader}}(ctx, iprot); err != nil {
 					goto ReadFieldError
 				}
 				{{- if .Requiredness.IsRequired}}
 				isset{{.GoName}} = true
 				{{- end}}
 			} else {
-				if err = iprot.Skip(fieldTypeId); err != nil {
+				if err = iprot.Skip(ctx, fieldTypeId); err != nil {
 					goto SkipFieldError
 				}
 			}
@@ -156,22 +156,22 @@ func (p *{{$TypeName}}) Read(iprot thrift.TProtocol) (err error) {
 				goto UnknownFieldsAppendError
 			}
 			{{- else}}
-		    if err = iprot.Skip(fieldTypeId); err != nil {
+		    if err = iprot.Skip(ctx, fieldTypeId); err != nil {
 				goto SkipFieldError
 		    }
 			{{- end}}{{/* if Features.KeepUnknownFields */}}
 		}
 		{{- else -}}
-		if err = iprot.Skip(fieldTypeId); err != nil {
+		if err = iprot.Skip(ctx, fieldTypeId); err != nil {
 		    goto SkipFieldTypeError
 		}
 		{{- end}}{{/* if len(.Fields) > 0 */}}
 
-		if err = iprot.ReadFieldEnd(); err != nil {
+		if err = iprot.ReadFieldEnd(ctx); err != nil {
 		  goto ReadFieldEndError
 		}
 	}
-	if err = iprot.ReadStructEnd(); err != nil {
+	if err = iprot.ReadStructEnd(ctx); err != nil {
 		goto ReadStructEndError
 	}
 	{{ $RequiredFieldNotSetError := false }}
@@ -225,7 +225,7 @@ var StructLikeReadField = `
 {{- $TypeName := .GoName}}
 {{- range .Fields}}
 {{$FieldName := .GoName}}
-func (p *{{$TypeName}}) {{.Reader}}(iprot thrift.TProtocol) error {
+func (p *{{$TypeName}}) {{.Reader}}(ctx context.Context, iprot thrift.TProtocol) error {
 	{{- $ctx := MkRWCtx .}}
 	{{- template "FieldRead" $ctx}}
 	return nil
@@ -238,7 +238,7 @@ func (p *{{$TypeName}}) {{.Reader}}(iprot thrift.TProtocol) error {
 var StructLikeWrite = `
 {{define "StructLikeWrite"}}
 {{- $TypeName := .GoName}}
-func (p *{{$TypeName}}) Write(oprot thrift.TProtocol) (err error) {
+func (p *{{$TypeName}}) Write(ctx context.Context, oprot thrift.TProtocol) (err error) {
 	{{- if gt (len .Fields) 0 }}
 	var fieldId int16
 	{{- end}}
@@ -248,26 +248,26 @@ func (p *{{$TypeName}}) Write(oprot thrift.TProtocol) (err error) {
 		goto CountSetFieldsError
 	}
 	{{- end}}
-	if err = oprot.WriteStructBegin("{{.Name}}"); err != nil {
+	if err = oprot.WriteStructBegin(ctx, "{{.Name}}"); err != nil {
 		goto WriteStructBeginError
 	}
 	if p != nil {
 		{{- range .Fields}}
-		if err = p.{{.Writer}}(oprot); err != nil {
+		if err = p.{{.Writer}}(ctx, oprot); err != nil {
 			fieldId = {{.ID}}
 			goto WriteFieldError
 		}
 		{{- end}}
 		{{if Features.KeepUnknownFields}}
-		if err = p._unknownFields.Write(oprot); err != nil {
+		if err = p._unknownFields.Write(ctx, oprot); err != nil {
 			goto UnknownFieldsWriteError
 		}
 		{{- end}}
 	}
-	if err = oprot.WriteFieldStop(); err != nil {
+	if err = oprot.WriteFieldStop(ctx); err != nil {
 		goto WriteFieldStopError
 	}
-	if err = oprot.WriteStructEnd(); err != nil {
+	if err = oprot.WriteStructEnd(ctx); err != nil {
 		goto WriteStructEndError
 	}
 	return nil
@@ -301,16 +301,16 @@ var StructLikeWriteField = `
 {{- $FieldName := .GoName}}
 {{- $IsSetName := .IsSetter}}
 {{- $TypeID := .Type | GetTypeIDConstant }}
-func (p *{{$TypeName}}) {{.Writer}}(oprot thrift.TProtocol) (err error) {
+func (p *{{$TypeName}}) {{.Writer}}(ctx context.Context, oprot thrift.TProtocol) (err error) {
 	{{- if .Requiredness.IsOptional}}
 	if p.{{$IsSetName}}() {
 	{{- end}}
-	if err = oprot.WriteFieldBegin("{{.Name}}", thrift.{{$TypeID}}, {{.ID}}); err != nil {
+	if err = oprot.WriteFieldBegin(ctx, "{{.Name}}", thrift.{{$TypeID}}, {{.ID}}); err != nil {
 		goto WriteFieldBeginError
 	}
 	{{- $ctx := MkRWCtx .}}
 	{{- template "FieldWrite" $ctx}}
-	if err = oprot.WriteFieldEnd(); err != nil {
+	if err = oprot.WriteFieldEnd(ctx); err != nil {
 		goto WriteFieldEndError
 	}
 	{{- if .Requiredness.IsOptional}}
@@ -442,7 +442,7 @@ var FieldRead = `
 var FieldReadStructLike = `
 {{define "FieldReadStructLike"}}
 	{{- .Target}} {{if .NeedDecl}}:{{end}}= {{.TypeName.Deref.NewFunc}}()
-	if err := {{.Target}}.Read(iprot); err != nil {
+	if err := {{.Target}}.Read(ctx, iprot); err != nil {
 		return err
 	}
 {{- end}}{{/* define "FieldReadStructLike" */}} 
@@ -455,7 +455,7 @@ var FieldReadBaseType = `
 	{{- if .NeedDecl}}
 	var {{.Target}} {{.TypeName}}
 	{{- end}}
-	if v, err := iprot.Read{{.TypeID}}(); err != nil {
+	if v, err := iprot.Read{{.TypeID}}(ctx); err != nil {
 		return err
 	} else {
 	{{- if .IsPointer}}
@@ -492,7 +492,7 @@ var FieldReadContainer = `
 // FieldReadMap .
 var FieldReadMap = `
 {{define "FieldReadMap"}}
-	_, _, size, err := iprot.ReadMapBegin()
+	_, _, size, err := iprot.ReadMapBegin(ctx)
 	if err != nil {
 		return err
 	}
@@ -512,7 +512,7 @@ var FieldReadMap = `
 
 		{{.Target}}[{{$key}}] = {{$val}}
 	}
-	if err := iprot.ReadMapEnd(); err != nil {
+	if err := iprot.ReadMapEnd(ctx); err != nil {
 		return err
 	}
 {{- end}}{{/* define "FieldReadMap" */}}
@@ -584,7 +584,7 @@ var FieldWrite = `
 // FieldWriteStructLike .
 var FieldWriteStructLike = `
 {{define "FieldWriteStructLike"}}
-	if err := {{.Target}}.Write(oprot); err != nil {
+	if err := {{.Target}}.Write(ctx, oprot); err != nil {
 		return err
 	}
 {{- end}}{{/* define "FieldWriteStructLike" */}}
@@ -597,7 +597,7 @@ var FieldWriteBaseType = `
 {{- if .IsPointer}}{{$Value = printf "*%s" $Value}}{{end}}
 {{- if .Type.Category.IsEnum}}{{$Value = printf "int32(%s)" $Value}}{{end}}
 {{- if .Type.Category.IsBinary}}{{$Value = printf "[]byte(%s)" $Value}}{{end}}
-	if err := oprot.Write{{.TypeID}}({{$Value}}); err != nil {
+	if err := oprot.Write{{.TypeID}}(ctx, {{$Value}}); err != nil {
 		return err
 	}
 {{- end}}{{/* define "FieldWriteBaseType" */}}
@@ -619,7 +619,7 @@ var FieldWriteContainer = `
 // FieldWriteMap .
 var FieldWriteMap = `
 {{define "FieldWriteMap"}}
-	if err := oprot.WriteMapBegin(thrift.
+	if err := oprot.WriteMapBegin(ctx, thrift.
 		{{- .KeyCtx.Type | GetTypeIDConstant -}}
 		, thrift.{{- .ValCtx.Type | GetTypeIDConstant -}}
 		, len({{.Target}})); err != nil {
@@ -631,7 +631,7 @@ var FieldWriteMap = `
 		{{$ctx := .ValCtx.WithTarget "v"}}
 		{{- template "FieldWrite" $ctx}}
 	}
-	if err := oprot.WriteMapEnd(); err != nil {
+	if err := oprot.WriteMapEnd(ctx); err != nil {
 		return err
 	}
 {{- end}}{{/* define "FieldWriteMap" */}}

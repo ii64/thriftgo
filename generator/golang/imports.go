@@ -88,6 +88,7 @@ func (im *importManager) init(cu *CodeUtils, ast *parser.Thrift) {
 	if len(ast.GetStructLikes()) > 0 {
 		ns.Add("fmt", "fmt")
 		ns.Add("thrift", DefaultThriftLib)
+		ns.Add("context", "context")
 	}
 
 	if len(ast.Services) > 0 {
