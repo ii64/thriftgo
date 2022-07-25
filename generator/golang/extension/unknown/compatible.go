@@ -289,10 +289,10 @@ func (p *protocol) Flush(ctx context.Context) (err error) {
 var (
 	contextInterface = reflect.TypeOf((*context.Context)(nil)).Elem()
 	errorInterface   = reflect.TypeOf((*error)(nil)).Elem()
-	ctx              = context.TODO()
-	protocolType     = reflect.TypeOf((*protocol)(nil))
-	protocols        sync.Map // reflect.Type => errro
-	intType          = reflect.TypeOf((*int)(nil)).Elem()
+	// ctx              = context.TODO()
+	protocolType = reflect.TypeOf((*protocol)(nil))
+	protocols    sync.Map // reflect.Type => errro
+	intType      = reflect.TypeOf((*int)(nil)).Elem()
 )
 
 func convert(x interface{}) (*protocol, error) {

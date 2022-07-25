@@ -20,6 +20,7 @@
 package unknown
 
 import (
+	"context"
 	"errors"
 	"fmt"
 )
@@ -60,12 +61,12 @@ type Field struct {
 type Fields []*Field
 
 // Append reads an unrecognized field and append it to the current slice.
-func (fs *Fields) Append(xprot TProtocol, name string, fieldType TType, id int16) error {
+func (fs *Fields) Append(ctx context.Context, xprot TProtocol, name string, fieldType TType, id int16) error {
 	iprot, err := convert(xprot)
 	if err != nil {
 		return err
 	}
-	f, err := read(iprot, name, asInt(fieldType), id, maxNestingDepth)
+	f, err := read(ctx, iprot, name, asInt(fieldType), id, maxNestingDepth)
 	if err != nil {
 		return err
 	}
@@ -74,7 +75,7 @@ func (fs *Fields) Append(xprot TProtocol, name string, fieldType TType, id int16
 }
 
 // Write writes out the unknown fields.
-func (fs *Fields) Write(xprot TProtocol) (err error) {
+func (fs *Fields) Write(ctx context.Context, xprot TProtocol) (err error) {
 	oprot, err := convert(xprot)
 	if err != nil {
 		return err
@@ -85,7 +86,7 @@ func (fs *Fields) Write(xprot TProtocol) (err error) {
 		if err = oprot.WriteFieldBegin(ctx, f.Name, f.Type, f.ID); err != nil {
 			break
 		}
-		if err = write(oprot, f); err != nil {
+		if err = write(ctx, oprot, f); err != nil {
 			break
 		}
 		if err = oprot.WriteFieldEnd(ctx); err != nil {
@@ -100,7 +101,7 @@ func (fs *Fields) Write(xprot TProtocol) (err error) {
 }
 
 // write writes out the unknown field.
-func write(oprot *protocol, f *Field) (err error) {
+func write(ctx context.Context, oprot *protocol, f *Field) (err error) {
 	switch f.Type {
 	case TBool:
 		return oprot.WriteBool(ctx, f.Value.(bool))
@@ -122,7 +123,7 @@ func write(oprot *protocol, f *Field) (err error) {
 			return fmt.Errorf("write set begin error: %w", err)
 		}
 		for _, v := range vs {
-			if err = write(oprot, v); err != nil {
+			if err = write(ctx, oprot, v); err != nil {
 				return fmt.Errorf("write set elem error: %w", err)
 			}
 		}
@@ -135,7 +136,7 @@ func write(oprot *protocol, f *Field) (err error) {
 			return fmt.Errorf("write list begin error: %w", err)
 		}
 		for _, v := range vs {
-			if err = write(oprot, v); err != nil {
+			if err = write(ctx, oprot, v); err != nil {
 				return fmt.Errorf("write list elem error: %w", err)
 			}
 		}
@@ -148,10 +149,10 @@ func write(oprot *protocol, f *Field) (err error) {
 			return fmt.Errorf("write map begin error: %w", err)
 		}
 		for i := 0; i < len(kvs); i += 2 {
-			if err = write(oprot, kvs[i]); err != nil {
+			if err = write(ctx, oprot, kvs[i]); err != nil {
 				return fmt.Errorf("write map key error: %w", err)
 			}
-			if err = write(oprot, kvs[i+1]); err != nil {
+			if err = write(ctx, oprot, kvs[i+1]); err != nil {
 				return fmt.Errorf("write map value error: %w", err)
 			}
 		}
@@ -163,7 +164,7 @@ func write(oprot *protocol, f *Field) (err error) {
 		if err = oprot.WriteStructBegin(ctx, f.Name); err != nil {
 			return fmt.Errorf("write struct begin error: %w", err)
 		}
-		if err = fs.Write(oprot); err != nil {
+		if err = fs.Write(ctx, oprot); err != nil {
 			return fmt.Errorf("write struct field error: %w", err)
 		}
 		if err = oprot.WriteFieldStop(ctx); err != nil {
@@ -179,7 +180,7 @@ func write(oprot *protocol, f *Field) (err error) {
 }
 
 // read reads an unknown field from the given TProtocol.
-func read(iprot *protocol, name string, fieldType int, id int16, maxDepth int) (f *Field, err error) {
+func read(ctx context.Context, iprot *protocol, name string, fieldType int, id int16, maxDepth int) (f *Field, err error) {
 	if maxDepth <= 0 {
 		return nil, ErrExceedDepthLimit
 	}
@@ -208,7 +209,7 @@ func read(iprot *protocol, name string, fieldType int, id int16, maxDepth int) (
 		}
 		set := make([]*Field, 0, size)
 		for i := 0; i < size; i++ {
-			v, err2 := read(iprot, "", f.ValType, int16(i), maxDepth-1)
+			v, err2 := read(ctx, iprot, "", f.ValType, int16(i), maxDepth-1)
 			if err2 != nil {
 				return nil, fmt.Errorf("read set elem error: %w", err)
 			}
@@ -225,7 +226,7 @@ func read(iprot *protocol, name string, fieldType int, id int16, maxDepth int) (
 		}
 		list := make([]*Field, 0, size)
 		for i := 0; i < size; i++ {
-			v, err2 := read(iprot, "", f.ValType, int16(i), maxDepth-1)
+			v, err2 := read(ctx, iprot, "", f.ValType, int16(i), maxDepth-1)
 			if err2 != nil {
 				return nil, fmt.Errorf("read list elem error: %w", err)
 			}
@@ -242,11 +243,11 @@ func read(iprot *protocol, name string, fieldType int, id int16, maxDepth int) (
 		}
 		flatMap := make([]*Field, 0, size*2)
 		for i := 0; i < size; i++ {
-			k, err2 := read(iprot, "", f.KeyType, int16(i), maxDepth-1)
+			k, err2 := read(ctx, iprot, "", f.KeyType, int16(i), maxDepth-1)
 			if err2 != nil {
 				return nil, fmt.Errorf("read map key error: %w", err)
 			}
-			v, err2 := read(iprot, "", f.ValType, int16(i), maxDepth-1)
+			v, err2 := read(ctx, iprot, "", f.ValType, int16(i), maxDepth-1)
 			if err2 != nil {
 				return nil, fmt.Errorf("read map value error: %w", err)
 			}
@@ -270,7 +271,7 @@ func read(iprot *protocol, name string, fieldType int, id int16, maxDepth int) (
 			if fieldTypeID == TStop {
 				break
 			}
-			v, err := read(iprot, name, fieldTypeID, fieldID, maxDepth-1)
+			v, err := read(ctx, iprot, name, fieldTypeID, fieldID, maxDepth-1)
 			if err != nil {
 				return nil, fmt.Errorf("read struct field error: %w", err)
 			}

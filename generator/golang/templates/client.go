@@ -78,19 +78,19 @@ func (p *{{$ClientName}}) {{- template "FunctionSignature" . -}} {
 
 	{{- if .Void}}
 	{{- if .Oneway}}
-	if err = p.Client_().Call(ctx, "{{.Name}}", &_args, nil); err != nil {
+	if _, err = p.Client_().Call(ctx, "{{.Name}}", &_args, nil); err != nil {
 		return
 	}
 	{{- else}}
 	var _result {{$ResType.GoName}}
-	if err = p.Client_().Call(ctx, "{{.Name}}", &_args, &_result); err != nil {
+	if _, err = p.Client_().Call(ctx, "{{.Name}}", &_args, &_result); err != nil {
 		return
 	}
 	{{- end}}
 	return nil
 	{{- else}}{{/* If .Void */}}
 	var _result {{$ResType.GoName}}
-	if err = p.Client_().Call(ctx, "{{.Name}}", &_args, &_result); err != nil {
+	if _, err = p.Client_().Call(ctx, "{{.Name}}", &_args, &_result); err != nil {
 		return
 	}
 	{{- if .Throws}}
