@@ -18,7 +18,7 @@ COV_PROF=$(OUT)/cov.out
 
 export IDL
 
-.PHONY: all clean
+.PHONY: all clean thriftgo
 all: lint test bench
 
 lint:
