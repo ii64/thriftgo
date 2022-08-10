@@ -638,6 +638,11 @@ func buildSynthesized(v *parser.Function) (argType, resType *parser.StructLike) 
 				Type:         v.FunctionType,
 			})
 		}
+
+		// mark exception field as optional.
+		for i := range v.Throws {
+			v.Throws[i].Requiredness = parser.FieldType_Optional
+		}
 		resType.Fields = append(resType.Fields, v.Throws...)
 	}
 	return
