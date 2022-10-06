@@ -18,12 +18,17 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"unsafe"
 )
 
 var (
 	structs map[reflect.Type]*structType
 	nul     = reflect.ValueOf(nil)
 )
+
+func GetRegisteredStructs() map[reflect.Type]*StructMeta {
+	return *(*map[reflect.Type]*StructMeta)(unsafe.Pointer(&structs))
+}
 
 // RegisterStruct associates a constructor of a thrift struct type
 // with some meta data to describes its meta data.
